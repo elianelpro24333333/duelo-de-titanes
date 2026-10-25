@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Duelo de Titanes</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <style>
+        :root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+        html, body { margin: 0; height: 100%; background: #07060b; overflow: hidden; }
+        body { display: flex; align-items: center; justify-content: center; }
+        canvas { display: block; }
+        #tc { position: absolute; inset: 0; pointer-events: none; user-select: none; -webkit-user-select: none; z-index: 999; display: none; }
+        @media(pointer:coarse) { #tc { display: block; } }
+        .btn { position: absolute; background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.4); border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.8); font-family: sans-serif; font-weight: bold; font-size: 4vmin; touch-action: none; box-sizing: border-box; text-shadow: 1px 1px 2px #000; }
+        .btn:active { background: rgba(255,255,255,.4); }
+        .dpad { width: 14vmin; height: 14vmin; }
+        .act { width: 12vmin; height: 12vmin; }
+        #b-w { left: 20vmin; bottom: 34vmin; } #b-a { left: 4vmin; bottom: 18vmin; } #b-s { left: 20vmin; bottom: 4vmin; } #b-d { left: 36vmin; bottom: 18vmin; }
+        #b-f { right: 32vmin; bottom: 18vmin; } #b-g { right: 18vmin; bottom: 4vmin; } #b-h { right: 18vmin; bottom: 32vmin; } #b-t { right: 4vmin; bottom: 18vmin; }
+        #b-r { right: 46vmin; bottom: 32vmin; background: rgba(255,210,63,.2); border-color: rgba(255,210,63,.5); color: rgba(255,210,63,.8); width: 14vmin; height: 14vmin; }
+        #b-start { left: 50%; top: 5vmin; transform: translateX(-50%); width: 24vmin; height: 8vmin; border-radius: 4vmin; font-size: 3vmin; background: rgba(255,255,255,.1); }
+    </style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div id="tc">
+    <div id="b-w" class="btn dpad">▲</div><div id="b-a" class="btn dpad">◀</div><div id="b-s" class="btn dpad">▼</div><div id="b-d" class="btn dpad">▶</div>
+    <div id="b-f" class="btn act">F</div><div id="b-g" class="btn act">G</div><div id="b-h" class="btn act">H</div><div id="b-t" class="btn act">T</div><div id="b-r" class="btn act">R</div>
+    <div id="b-start" class="btn">START</div>
+</div>
+<script>
+const cv=document.getElementById('c'),X=cv.getContext('2d'),VW=1280,VH=720,GY=620,W=3600,MAXD=1500,SP=340;
+const rs=()=>{const s=Math.min(innerWidth/VW,innerHeight/VH);cv.style.width=VW*s+'px';cv.style.height=VH*s+'px'};addEventListener('resize',rs);rs();
+const R=(a,b)=>a+Math.random()*(b-a),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const K={},pr={};
+addEventListener('keydown',e=>{if(!K[e.code])pr[e.code]=1;K[e.code]=1;initAudio();if(/^(Arrow|Space|Slash|Quote)/.test(e.code))e.preventDefault()});
+addEventListener('keyup',e=>K[e.code]=0);addEventListener('blur',()=>{for(const k in K)K[k]=0});
+const CT=[{l:['KeyA'],r:['KeyD'],u:['KeyW'],d:['KeyS'],p:['KeyF'],k:['KeyG'],s:['KeyH'],e:['KeyT'],x:['KeyR']},{l:['ArrowLeft'],r:['ArrowRight'],u:['ArrowUp'],d:['ArrowDown'],p:['Comma','Numpad1'],k:['Period','Numpad2'],s:['Slash','Numpad3'],e:['Semicolon','Numpad0'],x:['Quote','NumpadEnter']}];
+const dn=(c,a)=>c[a].some(k=>K[k]),jp=(c,a)=>c[a].some(k=>pr[k]);
+
+let AC;function initAudio(){if(!AC)try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+function tone(a,b,d,ty,v){if(!AC)return;try{const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(a,t);o.frequency.exponentialRampToValueAtTime(b,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(AC.destination);o.start();o.stop(t+d)}catch(e){}}
+function nz(d,v,f){if(!AC)return;try{const n=AC.sampleRate*d|0,bf=AC.createBuffer(1,n,AC.sampleRate),ch=bf.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);const s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();s.buffer=bf;fl.type='lowpass';fl.frequency.value=f;g.gain.value=v;s.connect(fl).connect(g).connect(AC.destination);s.start()}catch(e){}}
+const SND={w:()=>nz(.12,.12,3000),h:()=>{nz(.18,.5,1800);tone(160,50,.15,'square',.15)},b:()=>{nz(.1,.3,900);tone(300,200,.08,'triangle',.15)},p:()=>tone(300,900,.25,'sawtooth',.1),u:()=>tone(60,500,.8,'sawtooth',.18),k:()=>{nz(.8,.6,500);tone(50,25,.9,'sine',.5)},j:()=>nz(.08,.1,1500)};
+const snd=k=>SND[k]&&SND[k]();
+
+const MV={p:{d:22,rc:96,y:[-178,-118],su:.07,ac:.09,rec:.18,kb:200,st:.42,ki:0},k:{d:38,rc:122,y:[-150,-30],su:.15,ac:.12,rec:.32,kb:430,st:.4,ki:0,dn:1},e:{d:52,rc:100,y:[-180,-20],su:.1,ac:.28,rec:.42,kb:560,st:.5,ki:20,dn:1,dash:1050},s:{su:.18,ac:.05,rec:.36,ki:25},u:{su:.8,ac:.4,rec:.5,ki:0}};
+const C=[{n:'IGNIS',skin:'#e2a67c',gi:'#b01e22',dk:'#6e1015',trim:'#ffb13b',hair:'#1b0f0f',aura:'#ff7a1a',gl:'#ffd89a'},{n:'GLACIES',skin:'#cf9b76',gi:'#1c4d9f',dk:'#102c63',trim:'#9be9ff',hair:'#eaf7ff',aura:'#38c6ff',gl:'#d2f6ff'}];
+let P=[],PJ=[],BM=[],PT=[],DN=[],hs=0,sk=0,fl=0,wins=[0,0],now=0,CX=W/2,ZZ=.9,G={st:'title',rd:1,tm:99,it:0,et:0,msg:'',slow:1};
+const TX=[600,1300,2300,3000],ST=Array.from({length:60},()=>({x:R(0,VW),y:R(0,330),r:R(.6,1.8),p:R(0,6)})),MT=Array.from({length:45},()=>({x:R(0,VW),y:R(150,680),s:R(5,25),r:R(1,3)}));
+
+const mk=i=>({id:i,c:C[i],x:0,y:GY,vx:0,vy:0,f:1-2*i,hp:500,ht:500,ki:50,ult:0,gd:100,s:'idle',a:'',t:0,t2:0,hd:0,fi:0,combo:0,cT:0,buf:null,bt:0,fz:0,stun:0,lay:0,wk:0});
+function newRound(){P=[mk(0),mk(1)];P[0].x=W/2-260;P[1].x=W/2+260;PJ=[];BM=[];PT=[];DN=[];G.st='intro';G.it=0;G.tm=99;G.et=0;G.slow=1;G.msg='';CX=W/2;ZZ=.9}
+function sp(x,y,n,col,v,l,r,g,k){for(let i=0;i<n;i++){const a=R(0,6.283),s=R(.2,1)*v,L=l*R(.6,1);PT.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:L,m:L,r:r*R(.6,1),g:g||0,c:col,k:k||0})}if(PT.length>900)PT.splice(0,150)}
+
+function atk(F,a){const m=MV[a];if(m.ki>F.ki)return;F.ki-=m.ki;F.s='atk';F.a=a;F.t=0;F.hd=0;F.fi=0;snd('w')}
+function ult(F){F.ult=0;F.s='atk';F.a='u';F.t=0;F.fi=0;F.hd=0;P[1-F.id].fz=.5;fl=.8;sk=12;snd('u')}
+function fire(F){PJ.push({o:F,x:F.x+F.f*70,y:F.y-135,dir:F.f,vx:F.f*880,r:30,d:60,kb:340,st:.42,dn:0,life:2.6,c:F.c});snd('p');sp(F.x+F.f*70,F.y-135,14,F.c.gl,300,.3,4,0)}
+const box=(F,m)=>{const a=F.x+F.f*10,b=F.x+F.f*m.rc;return[Math.min(a,b),Math.max(a,b),F.y+m.y[0],F.y+m.y[1]]};
+const ov=(b,O)=>b[0]<O.x+34&&b[1]>O.x-34&&b[2]<O.y&&b[3]>O.y-185;
+
+function ko(A,B,dir){B.hp=0;if(G.st!='fight')return;G.st='end';G.et=0;G.slow=.28;G.msg='K.O.';wins[A.id]++;hs=.3;sk=30;fl=.7;B.s='ko';B.t=0;B.vx=dir*320;B.vy=-520;B.y-=2;snd('k');sp(B.x,B.y-100,60,A.c.gl,800,.8,5,400)}
+function timeUp(){G.st='end';G.et=0;G.slow=1;G.msg='TIEMPO';const a=P[0].hp,b=P[1].hp;if(a>=b)wins[0]++;if(b>=a)wins[1]++}
+
+function hit(F,O,m,px,py){
+ if(G.st!='fight'||['down','get','ko'].includes(O.s))return false;
+ const bl=O.s=='guard',dir=m.dir||F.f;let d=m.d*(bl?.1:Math.max(.45,1-.1*F.combo));d=Math.max(1,Math.round(d));
+ O.hp-=d;DN.push({x:px+R(-18,18),y:py-30,t:0,v:d,b:bl});
+ if(bl){O.gd-=m.d*.9;O.vx=dir*m.kb*.5;sp(px,py,8,'#9ad4ff',300,.25,3,0);snd('b');hs=.05;sk=Math.max(sk,3);
+  if(O.gd<=0){O.s='hit';O.t=0;O.stun=1.2;O.gd=45;DN.push({x:O.x,y:O.y-230,t:0,v:'GUARDIA ROTA!',b:0})}}
+ else{F.combo++;F.cT=1.4;F.ult=Math.min(100,F.ult+d*.3);O.ult=Math.min(100,O.ult+d*.2);F.ki=Math.min(100,F.ki+d*.12);
+  const kn=m.dn||(O.y<GY&&F.combo>=3);O.s=kn?'down':'hit';O.t=0;O.stun=m.st;O.vx=dir*m.kb;O.lay=0;
+  if(kn){O.vy=-560;O.y-=2}else if(O.y<GY)O.vy=-260;
+  hs=kn?.11:.06;sk=Math.max(sk,kn?22:9);sp(px,py,kn?30:16,F.c.gl,520,.4,4,300);sp(px,py,6,'#fff',700,.2,3,0);sp(px,py,1,F.c.aura,0,.3,kn?150:90,0,2);snd('h')}
+ if(O.hp<=0)ko(F,O,dir);return true}
+
+function upd(F,O,dt,c){
+ if(F.fz>0){F.fz-=dt;return}
+ F.t+=dt;F.bt-=dt;F.cT-=dt;if(F.cT<=0)F.combo=0;F.ht=Math.max(F.hp,F.ht-90*dt);
+ const gr=F.y>=GY,can=G.st=='fight';
+ F.ki=Math.min(100,F.ki+(F.s=='guard'?4:11)*dt);if(F.s!='guard')F.gd=Math.min(100,F.gd+22*dt);
+ if(!['atk','down','get','ko'].includes(F.s))F.f=O.x>F.x?1:-1;
+ if(can)for(const a of 'pkesx')if(jp(c,a)){F.buf=a;F.bt=.18}
+ if(['idle','walk','jump','guard'].includes(F.s)&&can){
+  const mx=dn(c,'r')-dn(c,'l');
+  if(gr){F.vx=mx*SP;F.s=dn(c,'d')?'guard':mx?'walk':'idle';if(F.s=='guard')F.vx=0;if(jp(c,'u')){F.vy=-1050;F.y-=1;F.s='jump';F.vx=mx*SP;snd('j')}}
+ }
+ if(F.bt>0&&['idle','walk','jump','guard'].includes(F.s)&&can){
+  const b=F.buf;if(b=='x'&&F.ult>=100){F.bt=0;ult(F)}
+  else if('pkes'.includes(b)){const m=MV[b];if(F.ki>=m.ki){F.bt=0;if(b=='e'&&m.dash)F.vx=F.f*m.dash;atk(F,b)}}
+ }
+ if(!gr)F.vy+=2800*dt;else{F.vy=0;F.y=GY;if(F.s!='walk'&&F.s!='atk')F.vx*=Math.exp(-12*dt)}
+ if(F.s=='atk'){
+  const m=MV[F.a];
+  if(F.a=='u'){
+   if(F.t>=.4&&F.fi<6){F.fi++;fire(F);F.t=.2}
+   if(F.t>=.8){F.s='idle';O.fz=0;fl=1;sk=0}
+  }else{
+   if(F.t>=m.su&&!F.hd){F.hd=1;if(F.a=='p')fire(F);else if(ov(box(F,m),O))hit(F,O,m,O.x,F.y+m.y[0])}
+   if(F.t>=m.su+m.rec)F.s='idle';
+  }
+ }
+ if(F.s=='hit'&&F.t>=F.stun)F.s='idle';
+ if(F.s=='down'&&gr){F.s='get';F.t=0;F.vx=0;sp(F.x,F.y,12,'#555',200,.3,4,0)}
+ if(F.s=='get'&&F.t>=.4)F.s='idle';
+ if(F.s=='ko'&&gr){F.vx=0;F.s='lay';F.t=0}
+ F.x+=F.vx*dt;F.y+=F.vy*dt;F.x=cl(F.x,40,W-40);
+}
+
+// Bucle de simulación y renderizado integrado
+function loop(ts){
+    let dt=cl((ts-now)/1000,0,.1)*G.slow;now=ts;
+    if(G.st=='fight'){
+        G.et+=dt;if(G.et>=1){G.et=0;G.tm--;if(G.tm<=0)timeUp()}
+        upd(P[0],P[1],dt,CT[0]);upd(P[1],P[0],dt,CT[1]);
+        // Restricción de distancia de cámara (cajas de colisión de pantalla)
+        if(Math.abs(P[0].x-P[1].x)>MAXD){
+            const m=(P[0].x+P[1].x)/2;
+            P[0].x=m-MAXD/2*Math.sign(P[1].x-P[0].x);
+            P[1].x=m+MAXD/2*Math.sign(P[1].x-P[0].x);
+        }
+    }else if(G.st=='intro'){
+        G.it+=dt;if(G.it>=2)G.st='fight';
+    }else if(G.st=='end'){
+  
